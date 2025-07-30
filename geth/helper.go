@@ -18,6 +18,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/tracing"
 	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/ethdb"
+	"github.com/ethereum/go-ethereum/ethdb/leveldb"
 	"github.com/ethereum/go-ethereum/ethdb/pebble"
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/triedb"
@@ -56,19 +57,36 @@ func NewMockEVM(tb testing.TB, statedb *state.StateDB) *MockEVM {
 	}
 }
 
-func NewMockStateDB(tb testing.TB, memory bool) *state.StateDB {
+type stateDBType int
+
+const (
+	Memory stateDBType = iota
+	PebbleDB
+	LevelDB
+)
+
+func NewMockStateDB(tb testing.TB, stateDbType stateDBType) *state.StateDB {
 	tb.Helper()
 
 	var ethdb ethdb.Database
-	if memory {
+	switch stateDbType {
+	case Memory:
 		ethdb = rawdb.NewMemoryDatabase()
-	} else {
+	case PebbleDB:
 		pebbleDB, err := pebble.New(tb.TempDir(), 0, 0, "", false)
 		require.NoError(tb, err)
 		ethdb = rawdb.NewDatabase(pebbleDB)
 
 		tb.Cleanup(func() {
 			_ = pebbleDB.Close()
+		})
+	case LevelDB:
+		levelDB, err := leveldb.New(tb.TempDir(), 0, 0, "", false)
+		require.NoError(tb, err)
+		ethdb = rawdb.NewDatabase(levelDB)
+
+		tb.Cleanup(func() {
+			_ = levelDB.Close()
 		})
 	}
 	triedb := triedb.NewDatabase(ethdb, nil)
