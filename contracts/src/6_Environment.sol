@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.19;
 
-contract EnvironmentOps {
+contract Environment {
     /// @notice Return basic block and tx environment info
     function envBasic() external view returns (
         uint256 blockNumber,

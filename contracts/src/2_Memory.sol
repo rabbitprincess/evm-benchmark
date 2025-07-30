@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.19;
 
 contract Memory {
     function memorySetGetFree(uint256 x) external pure returns (uint256) {

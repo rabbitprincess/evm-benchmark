@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.19;
 
 contract Hash{
     function hashSingle(uint256 x) external pure returns (bytes32) {

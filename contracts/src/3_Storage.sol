@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.13;
+pragma solidity ^0.8.19;
 
 contract Storage {
     uint256 private value;
@@ -36,5 +36,9 @@ contract Storage {
 
     function decrement(uint256 amount) external {
         value = value - amount;
+    }
+
+    function getValue() external view returns (uint256) {
+        return value;
     }
 }
