@@ -1,12 +1,13 @@
 module github.com/rabbitprincess/evm-benchmark/geth
 
-go 1.23.0
+go 1.24.2
 
-toolchain go1.23.2
+replace github.com/rabbitprincess/evm-benchmark/contracts/out => ../contracts/out
 
 require (
 	github.com/ethereum/go-ethereum v1.16.1
 	github.com/holiman/uint256 v1.3.2
+	github.com/rabbitprincess/evm-benchmark/contracts/out v0.0.0-00010101000000-000000000000
 	github.com/stretchr/testify v1.10.0
 )
 

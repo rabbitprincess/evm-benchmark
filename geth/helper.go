@@ -1,10 +1,15 @@
 package geth
 
 import (
+	"bytes"
 	"crypto/rand"
+	"encoding/hex"
+	"encoding/json"
+	"fmt"
 	"math/big"
 	"testing"
 
+	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/rawdb"
@@ -35,16 +40,16 @@ func NewMockEVM(tb testing.TB, statedb *state.StateDB) *MockEVM {
 		CanTransfer: core.CanTransfer,
 		Transfer:    core.Transfer,
 		Coinbase:    common.Address{},
-		BlockNumber: big.NewInt(1),
-		Time:        uint64(0),
+		BlockNumber: big.NewInt(1000),
+		Time:        uint64(1000),
 		Difficulty:  big.NewInt(1),
 		GasLimit:    8_000_000,
 		BaseFee:     big.NewInt(params.InitialBaseFee),
 	}
 
 	cfg := vm.Config{}
-	evm := vm.NewEVM(context, statedb, params.MainnetChainConfig, cfg)
-
+	chainCfg := params.AllDevChainProtocolChanges
+	evm := vm.NewEVM(context, statedb, chainCfg, cfg)
 	return &MockEVM{
 		EVM:     evm,
 		StateDB: statedb,
@@ -99,4 +104,74 @@ func NewMockContract(sender common.Address, amount *uint256.Int, gas uint64, cod
 	contract := vm.NewContract(sender, sender, amount, gas, nil)
 	contract.Code = code
 	return contract
+}
+
+func NewMockBytecode(tb testing.TB, code []byte) *Bytecode {
+	tb.Helper()
+
+	bytecode := &Bytecode{}
+	err := json.Unmarshal(code, bytecode)
+	require.NoError(tb, err, "Failed to unmarshal bytecode")
+	return bytecode
+}
+
+type Bytecode struct {
+	Abi              abi.ABI `json:"abi"`
+	Bytecode         []byte  `json:"-"`
+	DeployedBytecode []byte  `json:"-"`
+}
+
+func (b *Bytecode) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+
+	// ABI
+	if abiRaw, ok := raw["abi"]; ok {
+		abiJSON, err := abi.JSON(bytes.NewReader(abiRaw))
+		if err != nil {
+			return err
+		}
+		b.Abi = abiJSON
+	}
+
+	// Bytecode
+	if bytecodeRaw, ok := raw["bytecode"]; ok {
+		var obj struct {
+			Object string `json:"object"`
+		}
+		if err := json.Unmarshal(bytecodeRaw, &obj); err != nil {
+			return err
+		}
+		decoded, err := decodeHex(obj.Object)
+		if err != nil {
+			return fmt.Errorf("decode bytecode: %w", err)
+		}
+		b.Bytecode = decoded
+	}
+
+	// DeployedBytecode
+	if deployedRaw, ok := raw["deployedBytecode"]; ok {
+		var obj struct {
+			Object string `json:"object"`
+		}
+		if err := json.Unmarshal(deployedRaw, &obj); err != nil {
+			return err
+		}
+		decoded, err := decodeHex(obj.Object)
+		if err != nil {
+			return fmt.Errorf("decode deployedBytecode: %w", err)
+		}
+		b.DeployedBytecode = decoded
+	}
+
+	return nil
+}
+
+func decodeHex(s string) ([]byte, error) {
+	if len(s) >= 2 && s[:2] == "0x" {
+		s = s[2:]
+	}
+	return hex.DecodeString(s)
 }
